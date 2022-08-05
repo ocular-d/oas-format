@@ -15,4 +15,5 @@ USER node
 WORKDIR /app
 
 #ENTRYPOINT [ "bash" ]
-ENTRYPOINT [ "openapi-format", "openapi.yaml", "-o", "test.yaml" ]
+#ENTRYPOINT [ "openapi-format", "openapi.yaml", "-o", "test.yaml" ]
+ENTRYPOINT [ "openapi-format" ]
