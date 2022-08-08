@@ -1,0 +1,5 @@
+repos:
+-   repo: https://github.com/ocular-d/pre-commit-hooks.git
+    rev: 0.0.10
+    hooks:
+      - id: spectral

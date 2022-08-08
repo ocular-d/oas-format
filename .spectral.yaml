@@ -1,0 +1,367 @@
+extends: ["spectral:oas"]
+formats: ["oas3"]
+functionsDir: .spectral/
+functions:
+ # - ensureCorrectVerbsInTitles
+ # - ensureNoArticlesInTitles
+  - operationOrdering
+  - ensureSimpleDescription
+
+aliases:
+  Request_Parameter_Query:
+    description: ''
+    targets:
+    - formats:
+      - oas3
+      given:
+      - "$.paths[*].parameters[?(@.in == 'query')].name"
+      - "$.paths[*][*].parameters[?(@.in == 'query')].name"
+      - "$.components.parameters[?(@.in == 'query')].name"
+    - formats:
+      - oas2
+      given:
+      - "$.paths[*].parameters[?(@.in == 'query')].name"
+      - "$.paths[*][*].parameters[?(@.in == 'query')].name"
+      - "$.components.parameters[?(@.in == 'query')].name"
+  Request_Parameter_Path:
+    description: ''
+    targets:
+    - formats:
+      - oas3
+      given:
+      - "$.paths[*].parameters[?(@.in == 'path')].name"
+      - "$.paths[*][*].parameters[?(@.in == 'path')].name"
+      - "$.components.parameters[?(@.in == 'path')].name"
+    - formats:
+      - oas2
+      given:
+      - "$.paths[*].parameters[?(@.in == 'path')].name"
+      - "$.paths[*][*].parameters[?(@.in == 'path')].name"
+      - "$.components.parameters[?(@.in == 'path')].name"
+
+rules:
+  # Default rules of Spectral
+  oas3-server-not-example.com: true
+  oas3-server-trailing-slash: true
+  oas3-unused-component: true
+  oas3-examples-value-or-externalValue: false
+  operation-operationId-unique: true
+  no-script-tags-in-markdown: true
+  no-eval-in-markdown: true
+  openapi-tags-alphabetical: false
+  operation-description: false
+  oas3-parameter-description: false
+
+  oas3-valid-schema-example: info
+
+  # Order for endpoints should be GET, POST, PATCH, PUT, DELETE
+  # endpoint-verb-order:
+  #   severity: info
+  #   given: $.paths[?(@.get || @.post || @.patch || @.put || @.delete)]
+  #   then:
+  #     function: operationOrdering
+
+  # onna-ensure-correct-verb-title:
+  #   description: Titles must have the right verbs
+  #   given: $.paths[*][*]
+  #   severity: error
+  #   recommended: true
+  #   message: "{{error}}"
+  #   then:
+  #     function: ensureCorrectVerbsInTitles
+
+  # Don't have "a", "an" or "the" in summaries
+  # onna-ensure-no-articles-in-summary:
+  #   description: Summaries should not have "a" or "an" or "the"
+  #   documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#No-articles-in-summary
+  #   given: $.paths[*][*]
+  #   severity: error
+  #   recommended: true
+  #   message: "{{error}}"
+  #   then:
+  #     function: ensureNoArticlesInTitles
+
+  # Tags must have descriptions
+  onna-ensure-tag-description:
+    description: Tags must have a description
+    message: Tags must have descriptions
+    documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#Tags-must-have-descriptions
+    given: $.tags[*]
+    severity: error
+    recommended: true
+    then:
+      field: description
+      function: truthy
+
+  # Endpoint must have an operationID
+  onna-required-operationId:
+    description: Endpoint must have an operationId.
+    message: Endpoint must have an operationID
+    documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#Endpoint-must-have-an-operationID
+    given: $.paths[*][*]
+    severity: error
+    then:
+      field: operationId
+      function: truthy
+
+  # Check that operationID is in camelCase
+  onna-camel-case-operationId:
+    description: operationID should be camelCased.
+    message: operationID should be camelCased.
+    documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#Must-be-camelCased
+    severity: error
+    type: style
+    given: $.paths[*][*].operationId
+    then:
+      function: casing
+      functionOptions:
+        type: camel
+
+  # All requests MUST go through `https` only
+  onna-protocol-https-only:
+    description: "ALL requests MUST go through `https` protocol only"
+    message: "Servers MUST be https and no other protocol is allowed."
+    documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#HTTPS-only
+    recommended: true
+    severity: error
+    given: $.servers..url
+    then:
+      function: pattern
+      functionOptions:
+        match: "/^https:/"
+
+  # Keep summary short for ReDoc and similar tooling
+  onna-short-summary:
+    description: "Summary should be short and less than 50 characters"
+    message: "Summary should be short and less than 50 characters"
+    documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#Summary-should-be-less-than-50-characters
+    recommended: true
+    type: "style"
+    given: "$.paths.*[?( @property === 'get' || @property === 'put' || @property === 'post' || @property === 'delete' || @property === 'options' || @property === 'head' || @property === 'patch' || @property === 'trace' )]"
+    then:
+      - field: summary
+        function: pattern
+        functionOptions:
+          notMatch: "\\."
+      - field: summary
+        function: length
+        functionOptions:
+          max: 50
+
+  # Require 3-part Semantic Versions as the spec versions
+  onna-semver:
+    severity: error
+    recommended: true
+    description: Specs should follow semantic versioning
+    message: Specs should follow semantic versioning. {{value}} is not a valid version
+    given: $.info.version
+    then:
+      function: pattern
+      functionOptions:
+        match: "^([0-9]+.[0-9]+.[0-9]+)$"
+
+  # Do not use x-headers
+  onna-no-x-headers:
+    description: "Please do not use headers with X-"
+    message: "Headers cannot start with X-, so please find a new name for {{property}}. More: https://tools.ietf.org/html/rfc6648"
+    documentationUrl: https://onnapedia.atlassian.net/wiki/spaces/DX/pages/1748238347/Spectral#Do-not-use-x-headers
+    given: "$..parameters.[?(@.in === 'header')].name"
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: '^(x|X)-'
+
+  # We always require a summary
+  onna-operation-required-fields:
+    severity: error
+    message: Missing {{property}}at {{path}}
+    given: $.paths.*[get,post,patch,put,delete]
+    then:
+      - field: "summary"
+        function: truthy
+
+  # A "Get" request MUST NOT accept a "body" parameter
+  onna-request-GET-no-body:
+    description: "A 'GET' request MUST NOT accept a 'body' parameter"
+    severity: error
+    given: $.paths..get.parameters..in
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "/^body$/"
+
+  # Responses should contain common response - 404 (not found)
+  onna-common-responses-not-found:
+    description: Responses should contain common response - 404 (not found)
+    message: "{{description}}. Missing {{property}}"
+    severity: error
+    given: $.paths[?(@property.match(/.*\/{.*}.*/))]..responses
+    then:
+      - field: '404'
+        function: truthy
+
+  # Titles should be in title case
+  onna-info-title-case:
+    description: API titles SHOULD be Title Case.
+    message: 'Title: {{value}} is not Title Case. All API titles SHOULD be Title case.'
+    severity: warn
+    given: $.info[title]
+    then:
+      function: pattern
+      functionOptions:
+        match: ^\s*[A-Z]\w*\s*(([A-Z]\w*)\s*)*$
+
+  # Tag name should be NOT longer than 30 chars
+  onna-styling-tags-short-name:
+    description: >-
+      Tag names SHOULD be short and sweet, no full stops, and less than 30
+      characters.
+    given: $.tags[*]
+    message: >-
+      Tag name: {{value}} could be improved. Tag names SHOULD be short and
+      sweet, no full stops, and less than 30 characters.
+    severity: warn
+    then:
+      - field: name
+        function: pattern
+        functionOptions:
+          notMatch: "\\."
+      - field: name
+        function: length
+        functionOptions:
+          max: 30
+
+  # Tags must have descriptions
+  onna-styling-tags-description:
+    description: Tags MUST have a description.
+    given: $.tags[*]
+    severity: error
+    then:
+      field: description
+      function: truthy
+
+  # Parameters must have descriptions
+  onna-ensure-param-description:
+    description: Parameters must have a description.
+    given: $..*.parameters[*]
+    severity: error
+    recommended: true
+    message: "{{error}}"
+    then:
+      field: description
+      function: truthy
+
+  # Paths must be in snake_case
+  onna-snake-case-for-paths:
+    description: Paths must use snake_case
+    given: $.paths
+    severity: error
+    then:
+      field: '@key'
+      function: pattern
+      functionOptions:
+        match: '^[a-z_\/{}]*$'
+
+  # Endpoint summary word check
+  onna-endpoint-summary-word-check:
+    description: Ensures that all endpoint summaries do not contain some words.
+    message: The info object summary should not contain the words Get, Put.
+    given: $.paths.*[get,post,patch,put,delete].summary
+    severity: error
+    recommended: true
+    type: style
+    then:
+      function: pattern
+      functionOptions:
+        notMatch: "\\b(Get|Put)\\b"
+
+  health-status:
+    description: |-
+      You must define a `/health` path that can be used to health-check the API.
+      Using this path avoids the arbitrary usage of a server URL for health-check
+      scope.
+
+      The `/heath` endpoint should return a `application/problem+json` response
+      containing a successful status code if the service is working correctly.
+
+      The service provider is free to define the implementation logic for this path.
+    message: >-
+      The "/health" path used to health-check the API must be defined. {{error}}
+    severity: error
+    recommended: true
+    given: $.paths
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          oneOf:
+          - type: object
+            required:
+            - "/health"
+            properties:
+              "/health":
+                type: object
+          - type: object
+            additionalProperties: false
+
+  must-use-standard-http-status-codes:
+    message: '{{property}} is not a standardized response code'
+    description: MUST use standard HTTP status codes [150]
+    documentationUrl: https://opensource.zalando.com/restful-api-guidelines/#150
+    severity: error
+    given: $.paths.*.*.responses.*~
+    then:
+      function: enumeration
+      functionOptions:
+        values:
+          - '100'
+          - '101'
+          - '200'
+          - '201'
+          - '202'
+          - '203'
+          - '204'
+          - '205'
+          - '206'
+          - '207'
+          - '300'
+          - '301'
+          - '302'
+          - '303'
+          - '304'
+          - '305'
+          - '307'
+          - '400'
+          - '401'
+          - '402'
+          - '403'
+          - '404'
+          - '405'
+          - '406'
+          - '407'
+          - '408'
+          - '409'
+          - '410'
+          - '411'
+          - '412'
+          - '413'
+          - '414'
+          - '415'
+          - '416'
+          - '417'
+          - '422'
+          - '423'
+          - '426'
+          - '428'
+          - '429'
+          - '431'
+          - '500'
+          - '5xx'
+          - '501'
+          - '502'
+          - '503'
+          - '504'
+          - '505'
+          - '511'
+          - default
+
