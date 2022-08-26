@@ -1,5 +1,5 @@
 FROM node:lts-alpine3.16
-ENV APP_VERSION=1.11.0
+ENV APP_VERSION=1.12.1
 
 LABEL description="TBD"
 LABEL maintainer="sven@testthedocs.org"
