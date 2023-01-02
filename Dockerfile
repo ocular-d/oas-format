@@ -1,4 +1,4 @@
-FROM node:lts-alpine3.16
+FROM node:lts-alpine3.17
 ENV APP_VERSION=1.13.0
 
 LABEL description="TBD"
