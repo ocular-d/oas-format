@@ -1,8 +1,8 @@
 # oas-format
 
-docker run --rm -it -v $(pwd)/spec:/app oasf
-
-docker run --rm -v "$(pwd)/spec":/app --name oasft testthedocs/oas-format:1.11.0 api-example.yaml -o test.yaml
+```shell
+docker run --rm -v "$(pwd)/spec":/app --name oasft testthedocs/oas-format:1.13.0 api-example.yaml -o test.yaml
+```
 
 - Place for OAS file in the /spec dir
 
